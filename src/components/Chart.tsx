@@ -4,6 +4,7 @@ import {
   utilityLineLayer1,
   utilityPointLayer,
   utilityLineLayer,
+  viaductLayer,
 } from "../layers";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 import FeatureFilter from "@arcgis/core/layers/support/FeatureFilter";
@@ -65,7 +66,18 @@ const Chart = () => {
     qExpression: any;
   };
 
+  //Query
+  const qCP = "CP = '" + contractp + "'";
+  const qCompany = "Company = '" + company + "'";
+  const qCpCompany = qCP + " AND " + qCompany;
+  const qType = "Type = '" + type + "'";
+  const qCpCompanyType = qCP + " AND " + qCompany + " AND " + qType;
+  const finalExpression = qCpCompanyType;
+
   useEffect(() => {
+    contractp
+      ? (viaductLayer.definitionExpression = qCP)
+      : (viaductLayer.definitionExpression = "1=1");
     if (type === "Point") {
       generateUtilPointChartData({ contractp, company, type }).then(
         (response: any) => {
@@ -81,6 +93,13 @@ const Chart = () => {
 
       setFeatureLayer(utilityPointLayer1);
       zoomToLayer(utilityPointLayer1, arcgisScene);
+
+      utilityPointLayer.definitionExpression = finalExpression;
+      utilityPointLayer1.definitionExpression = finalExpression;
+      utilityPointLayer.visible = true;
+      utilityPointLayer1.visible = true;
+      utilityLineLayer.visible = false;
+      utilityLineLayer1.visible = false;
     } else if (type === "Line") {
       generateUtilLineChartData({ contractp, company, type }).then(
         (response: any) => {
@@ -96,6 +115,13 @@ const Chart = () => {
 
       setFeatureLayer(utilityLineLayer1);
       zoomToLayer(utilityLineLayer1, arcgisScene);
+
+      utilityLineLayer.definitionExpression = finalExpression;
+      utilityLineLayer1.definitionExpression = finalExpression;
+      utilityPointLayer.visible = false;
+      utilityPointLayer1.visible = false;
+      utilityLineLayer.visible = true;
+      utilityLineLayer1.visible = true;
     } else if (type === undefined) {
       // Point + Line
       generatePointLineChartData({ contractp, company }).then(
@@ -337,12 +363,6 @@ const Chart = () => {
         const find = types.find((emp: any) => emp.category === categorySelect);
         const typeSelect = find?.value;
         const selectedStatus: number | null = fieldName === "incomp" ? 0 : 1;
-
-        console.log("CP: ", contractp);
-        console.log("Company: ", company);
-        console.log("Point or Line: ", type);
-        console.log("UtilType selected: ", typeSelect);
-        console.log("Selected Status: ", selectedStatus);
 
         // Define individuals
         const qUtilType = "UtilType = " + typeSelect;

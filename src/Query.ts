@@ -53,43 +53,6 @@ export async function generateUtilPointChartData({
   company,
   type,
 }: any) {
-  // // Query
-  // const qCP = "CP = '" + contractp + "'";
-  // const qCompany = "Company = '" + company + "'";
-  // const qCpCompany = qCP + ' AND ' + qCompany;
-  // const finalExpression = contractp && !company ? qCP : qCpCompany;
-  // var total_count_type = new StatisticDefinition({
-  //   onStatisticField: utilTypeField,
-  //   outStatisticFieldName: 'total_count_type',
-  //   statisticType: 'count',
-  // });
-  // var total_count_status = new StatisticDefinition({
-  //   onStatisticField: utilStatusField,
-  //   outStatisticFieldName: 'total_count_status',
-  //   statisticType: 'count',
-  // });
-  // var query = utilityPointLayer.createQuery();
-  // query.outFields = [utilTypeField, utilStatusField];
-  // query.outStatistics = [total_count_type, total_count_status];
-  // query.orderByFields = [utilTypeField, utilStatusField];
-  // query.groupByFieldsForStatistics = [utilTypeField, utilStatusField];
-  // query.where = finalExpression;
-  // return utilityPointLayer.queryFeatures(query).then((response: any) => {
-  //   var stats = response.features;
-  //   const data = stats.map((result: any, index: any) => {
-  //     const attributes = result.attributes;
-  //     const utiltype = attributes.UtilType;
-  //     const status_id = attributes.Status;
-  //     const count_status = attributes.total_count_status;
-  //     return Object.assign({
-  //       category: utilTypes[index + 1].type,
-  //       comp: status_id === 1 ? count_status : 0,
-  //       incomp: status_id === 0 ? count_status : 0,
-  //       icon: utilePointTypeIcons[index],
-  //     });
-  //   });
-  //   console.log(data);
-  // });
   var total_telecom_incomp = new StatisticDefinition({
     onStatisticField:
       "CASE WHEN (UtilType = 1 and Status = 0) THEN 1 ELSE 0 END",
@@ -158,13 +121,6 @@ export async function generateUtilPointChartData({
   const qCpCompanyType = qCP + " AND " + qCompany + " AND " + qType;
   const finalExpression = qCpCompanyType;
   query.where = finalExpression;
-  utilityPointLayer.definitionExpression = finalExpression;
-  utilityPointLayer1.definitionExpression = finalExpression;
-  viaductLayer.definitionExpression = qCP;
-  utilityPointLayer.visible = true;
-  utilityPointLayer1.visible = true;
-  utilityLineLayer.visible = false;
-  utilityLineLayer1.visible = false;
 
   return utilityPointLayer.queryFeatures(query).then((response: any) => {
     var stats = response.features[0].attributes;
@@ -289,16 +245,6 @@ export async function generateUtilLineChartData({
   const finalExpression = qCpCompanyType;
 
   query.where = finalExpression;
-  utilityLineLayer.definitionExpression = finalExpression;
-  utilityLineLayer1.definitionExpression = finalExpression;
-  viaductLayer.definitionExpression = qCP;
-  utilityLineLayer.visible = true;
-  utilityLineLayer1.visible = true;
-  utilityPointLayer.visible = false;
-  utilityPointLayer1.visible = false;
-
-  // zoom to layer
-  // zoomToLayer(utilityLineLayer, arcgisScene);
 
   return utilityLineLayer.queryFeatures(query).then((response: any) => {
     var stats = response.features[0].attributes;

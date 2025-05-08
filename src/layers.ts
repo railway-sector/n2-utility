@@ -934,7 +934,7 @@ const colorViaduct = [
 
 function renderViaductLayer() {
   const renderer = new UniqueValueRenderer({
-    field: "Status1",
+    field: "Status",
   });
 
   for (var i = 0; i < colorViaduct.length; i++) {
