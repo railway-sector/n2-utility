@@ -36,6 +36,7 @@ function MapDisplay() {
       arcgisScene.map.add(stationLayer);
       // arcgisScene.map.ground.opacity = 0.5;
       arcgisScene.view.environment.atmosphereEnabled = false;
+      arcgisScene.view.environment.starsEnabled = false;
       arcgisScene.map.ground.navigationConstraint = "none";
       arcgisSearch.sources = [
         {
