@@ -67,7 +67,7 @@ function App() {
           }}
         >
           <ActionPanel />
-          {/* <UndergroundSwitch /> */}
+          <UndergroundSwitch />
           <Chart />
           <MapDisplay />
           <Header />

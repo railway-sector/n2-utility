@@ -30,7 +30,6 @@ import {
 } from "../Query";
 import { MyContext } from "../App";
 import { ArcgisScene } from "@arcgis/map-components/dist/components/arcgis-scene";
-import UndergroundSwitch from "./UndergroundSwitch";
 
 // Dispose function
 function maybeDisposeRoot(divId: any) {
@@ -572,7 +571,6 @@ const Chart = () => {
             marginBottom: "40px",
           }}
         ></div>
-        <UndergroundSwitch />
       </CalcitePanel>
     </>
   );

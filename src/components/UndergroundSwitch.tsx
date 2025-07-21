@@ -19,13 +19,14 @@ function UndergroundSwitch() {
   return (
     <>
       <div
-        className="groundSwitchDiv"
         style={{
-          // position: "fixed",
-          // zIndex: 1,
-          // bottom: 15,
-          // left: 0,
+          position: "fixed",
+          zIndex: 10,
+          bottom: 5,
           color: "white",
+          borderStyle: "solid",
+          borderColor: "grey",
+          borderWidth: 1,
           backgroundColor: "#2b2b2b",
           paddingLeft: 5,
           paddingRight: 5,
