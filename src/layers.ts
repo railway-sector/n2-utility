@@ -22,7 +22,7 @@ import SizeVariable from "@arcgis/core/renderers/visualVariables/SizeVariable";
 import RotationVariable from "@arcgis/core/renderers/visualVariables/RotationVariable";
 import { labelSymbol3DLine } from "./Label";
 import GroupLayer from "@arcgis/core/layers/GroupLayer";
-////////////////////////////// test est
+////////////////////////////// test est///////////
 /* Standalone table for Dates */
 export const dateTable = new FeatureLayer({
   portalItem: {
