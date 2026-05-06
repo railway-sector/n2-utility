@@ -4,6 +4,7 @@ import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 import FeatureFilter from "@arcgis/core/layers/support/FeatureFilter";
+import Query from "@arcgis/core/rest/support/Query";
 
 //--------------------------------//
 //    Chart RendererParameters    //
@@ -45,6 +46,15 @@ export const highlightFilterLayerView = ({
   view?.whenLayerView(layer).then((layerView: any) => {
     layer?.queryObjectIds(query).then((results: any) => {
       const objID = results;
+
+      const queryExt = new Query({
+        objectIds: objID,
+      });
+      layer?.queryExtent(queryExt).then((result: any) => {
+        if (result?.extent) {
+          view?.goTo(result.extent);
+        }
+      });
 
       highlightSelect && highlightSelect.remove();
       highlightSelect = layerView.highlight(objID);
