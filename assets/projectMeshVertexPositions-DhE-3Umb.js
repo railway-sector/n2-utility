@@ -1,1 +1,0 @@
-import{ei as i,b2 as s,dF as n}from"./index-D8_dqzPn.js";import{q as a}from"./vertexSpaceConversion-CAIA315F.js";import"./vec4-BUfJmDQa.js";function f(o,r){const e=a(o,i.absolute);if(!e)return null;let t=e.position;return s(o.spatialReference,r)||(t=new Float64Array(e.position.length),n(e.position,o.spatialReference,0,t,r,0))?t:null}export{f as projectMeshVertexPositions};
