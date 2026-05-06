@@ -76,7 +76,6 @@ export function clickSeries(
   q3Field: any,
   chartCategoryTypes: any,
   chartCategoryFieldScene: any,
-  statusStatename: any,
   statusStateValue: any,
   statusField: any,
   arcgisScene: any,
@@ -87,9 +86,6 @@ export function clickSeries(
     const find = chartCategoryTypes.find(
       (emp: any) => emp.category === categorySelected,
     );
-
-    console.log(selected);
-    console.log(statusStatename);
     const typeSelected = find?.value;
 
     const expression_layer = queryExpression({
@@ -204,7 +200,6 @@ export function makeSeries(
     q3Field,
     chartCategoryTypes,
     chartCategoryFieldScene,
-    statusStatename,
     statusStateValue,
     statusField,
     arcgisScene,
