@@ -113,7 +113,7 @@ const Chart = () => {
   const new_valueSize = new_fontSize * 1.55;
   const new_chartIconSize = chartPanelwidth * 0.07;
   const new_axisFontSize = chartPanelwidth * 0.036;
-  const new_imageSize = chartPanelwidth * 0.035;
+  const new_imageSize = chartPanelwidth * 0.055;
 
   // Utility Chart
   useEffect(() => {
