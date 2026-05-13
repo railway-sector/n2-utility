@@ -50,6 +50,7 @@ export const highlightFilterLayerView = ({
       const queryExt = new Query({
         objectIds: objID,
       });
+
       layer?.queryExtent(queryExt).then((result: any) => {
         if (result?.extent) {
           view?.goTo(result.extent);
@@ -87,10 +88,10 @@ interface clickSeriesType {
   chartCategoryTypes: any;
   chartCategoryFieldScene: any;
   statusStatename: any;
+  statusArray: any;
   statusField: any;
   arcgisScene: any;
 }
-
 export function clickSeries({
   series,
   layers,
@@ -103,6 +104,7 @@ export function clickSeries({
   chartCategoryTypes,
   chartCategoryFieldScene,
   statusStatename,
+  statusArray,
   statusField,
   arcgisScene,
 }: clickSeriesType) {
@@ -119,7 +121,9 @@ export function clickSeries({
     queryc2.chartCategory = typeSelected;
     queryc2.chartCategoryField = chartCategoryFieldScene;
     queryc2.chartCategoryType = "number";
-    queryc2.status = statusStatename === "incomp" ? 0 : 1;
+    queryc2.status = statusArray.find(
+      (item: any) => item.status === statusStatename,
+    ).value;
     queryc2.statusField = statusField;
     const geometryTypeSelected =
       q3Value === "Point"
@@ -165,8 +169,8 @@ interface makeSeriesType {
   chartCategoryFieldScene: any;
   data: any;
   statusTypename: any;
-  statusStatename?: any;
-  statusStateValue: any;
+  statusStatename: any;
+  statusArray: any;
   statusField: any;
   xAxis: any;
   yAxis: any;
@@ -193,6 +197,7 @@ export function makeSeries({
   data,
   statusTypename,
   statusStatename,
+  statusArray,
   statusField,
   xAxis,
   yAxis,
@@ -265,6 +270,7 @@ export function makeSeries({
     chartCategoryTypes: chartCategoryTypes,
     chartCategoryFieldScene: chartCategoryFieldScene,
     statusStatename: statusStatename,
+    statusArray: statusArray,
     statusField: statusField,
     arcgisScene: arcgisScene,
   });
@@ -290,7 +296,7 @@ interface chartType {
   // 'statusTypename' and 'statusStatename': E.g., you can add or delete status you wish to add in stacked columns.
   statusTypename: StatusTypenamesType[]; // order has no effect on statistics
   statusStatename: StatusStateType[]; // order affects the order displayed in stacked column charts
-  statusStateValue?: any;
+  statusArray: any;
   statusField: any;
   seriesStatusColor: any;
   strokeColor: any;
@@ -320,7 +326,7 @@ export function chartRenderer({
   chartCategoryFieldScene,
   statusTypename,
   statusStatename,
-  statusStateValue,
+  statusArray,
   statusField,
   seriesStatusColor,
   strokeColor,
@@ -351,7 +357,7 @@ export function chartRenderer({
             height: new_chartIconSize,
             centerY: am5.p50,
             centerX: am5.p50,
-            scale: 1.1,
+            scale: 1.15,
             x: chartIconPositionX,
             src: dataItem.dataContext.icon,
           }),
@@ -426,7 +432,7 @@ export function chartRenderer({
         data: data,
         statusTypename: statustype,
         statusStatename: statusStatename[index],
-        statusStateValue: statusStateValue[index],
+        statusArray: statusArray,
         statusField: statusField,
         xAxis: xAxis,
         yAxis: yAxis,
