@@ -19,10 +19,12 @@ import {
 } from "../layers";
 import type { ArcgisScene } from "@arcgis/map-components/dist/components/arcgis-scene";
 import type { ArcgisSearch } from "@arcgis/map-components/components/arcgis-search";
+import { useState } from "react";
 
 function MapDisplay() {
   const arcgisScene = document.querySelector("arcgis-scene") as ArcgisScene;
   const arcgisSearch = document.querySelector("arcgis-search") as ArcgisSearch;
+  const [_mapView, setMapView] = useState<any>();
 
   arcgisScene?.viewOnReady(() => {
     arcgisScene?.map?.add(alignmentGroupLayer);
@@ -91,6 +93,9 @@ function MapDisplay() {
       viewingMode="local"
       zoom={12}
       center="120.5793, 15.18"
+      onarcgisViewReadyChange={(event: any) => {
+        setMapView(event.target.id);
+      }}
     >
       <arcgis-compass slot="top-right"></arcgis-compass>
       <arcgis-expand close-on-esc slot="top-right" mode="floating">
