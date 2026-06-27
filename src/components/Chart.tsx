@@ -69,10 +69,9 @@ const Chart = () => {
       const chartData = await chartDataStackColumns({
         qChart: queryc.queryExpression(),
         chartCategoryTypes: utility_category_types,
-        chartCategoryField: chartCategoryTypeField, // "UtilType"
-        chartCategoryValueType: "number",
+        chartCategoryTypeField: chartCategoryTypeField, // "UtilType"
         layers: [utilityPointLayer, utilityLineLayer],
-        statusState: [0, 1],
+        statusState: [0, 2, 3, 1], // 2, 3 are dummy. 0: incomp, 1: comp
         statusField: status_Field,
       });
 

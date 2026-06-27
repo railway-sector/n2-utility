@@ -1,176 +1,144 @@
-import type { TypeFieldType } from "./uniqueValues";
-import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 import StatisticDefinition from "@arcgis/core/rest/support/StatisticDefinition";
 import Query from "@arcgis/core/rest/support/Query";
 
 //-------------------------------------//
 //        Chart Data generation        //
 //-------------------------------------//
-interface queryBuildingLayersType {
-  qChart: any;
-  chartCategoryTypes?: any;
-  chartCategory?: any;
-  chartCategoryField?: any;
-  chartCategoryValueType?: TypeFieldType;
-  layers:
-    | [FeatureLayer, FeatureLayer?, FeatureLayer?, FeatureLayer?, FeatureLayer?]
-    | any;
-  status?: number;
-  statusState?: any;
-  statusField?: any;
-  qExpression?: any;
-}
-
-export async function chartDataQuery({
-  qChart: qChart,
-  layers: layers,
-  statusState: statusState,
-  statusField: statusField,
-}: queryBuildingLayersType) {
-  //--- types: include 'others'. Each main type may have others (types = 0)
-  const compile: any = [];
-
-  //--- Main statistics
-  statusState.map((status: any) => {
-    const temp = new StatisticDefinition({
-      onStatisticField: `CASE WHEN ${statusField} = ${status} THEN 1 ELSE 0 END`,
-      outStatisticFieldName: `stats${status}`,
-      statisticType: "sum",
-    });
-    compile.push(temp);
-  });
-
-  //--- Query
-  const query = new Query();
-  query.outStatistics = compile;
-  query.where = qChart;
-
-  //--- Query features using statistics definitions
-  const qStats = layers?.queryFeatures(query).then((response: any) => {
-    const stats = response.features[0].attributes;
-    const incomp = stats[compile[0].outStatisticFieldName];
-    // const ongoing = stats[compile[1].outStatisticFieldName];
-    // const delayed = stats[compile[2].outStatisticFieldName];
-    const comp = stats[compile[1].outStatisticFieldName];
-    // const total = incomp + ongoing + delayed + comp;
-    const total = incomp + comp;
-
-    // return [incomp, comp, ongoing, delayed, total];
-    return [incomp, comp, total];
-  });
-  return qStats;
-}
-
 export async function chartDataStackColumns({
-  qChart: qChart,
-  layers: layers,
-  chartCategoryTypes: chartCategoryTypes,
-  chartCategoryField: chartCategoryField,
-  chartCategoryValueType: chartCategoryValueType,
-  statusState: statusState,
-  statusField: statusField,
-  qExpression: qExpression,
-}: queryBuildingLayersType) {
-  if (chartCategoryField) {
-    // 1. Map through types and return a promise for each type
-    const promises = chartCategoryTypes.map(async (type: any) => {
-      let total_comp = 0;
-      let total_incomp = 0;
-      // let total_ongoing = 0;
-      // let total_delayed = 0;
+  qChart,
+  chartCategoryTypes,
+  chartCategoryTypeField,
+  layers,
+  statusField,
+  statusState,
+}: chartDataGenerationType) {
+  const typesV = chartCategoryTypes.map((name: any) => name.value);
+  const types = chartCategoryTypes.map((name: any) => name.category);
 
-      // 2. Use Promise.all to wait for all statuses
-      await Promise.all(
-        statusState.map(async (status: any) => {
-          const onStatisticField =
-            chartCategoryValueType === "number"
-              ? `CASE WHEN (${chartCategoryField} = ${type.value} AND ${statusField} = ${status}) THEN 1 ELSE 0 END`
-              : `CASE WHEN (${chartCategoryField} = '${type.value}' AND ${statusField} = ${status}) THEN 1 ELSE 0 END`;
+  const data0 = layers.map(async (layer: any) => {
+    const compile: any = [];
 
-          const temp = new StatisticDefinition({
-            onStatisticField: onStatisticField,
-            outStatisticFieldName: "temp",
-            statisticType: "sum",
-          });
-
-          const query = new Query();
-          query.outStatistics = [temp];
-          query.where = qChart;
-
-          // 3. Await layer queries
-          for (const layer of layers) {
-            const response = await layer.queryFeatures(query);
-            const stats = response.features[0]?.attributes;
-            if (stats) {
-              if (status === 0) total_incomp += stats["temp"] || 0;
-              // if (status === 2) total_ongoing += stats["temp"] || 0;
-              // if (status === 3) total_delayed += stats["temp"] || 0;
-              if (status === 1) total_comp += stats["temp"] || 0;
-            }
-          }
-        }),
-      );
-
-      // Return the compiled result for this type
-      return {
-        category: type.category,
-        comp: total_comp,
-        incomp: total_incomp,
-        // ongoing: total_ongoing,
-        // delayed: total_delayed,
-        icon: type.icon,
-      };
+    //--- Main statistics
+    typesV.map((type: any) => {
+      statusState.map((status: any) => {
+        const typev = typeof type === "number" ? `${type}` : `'${type}'`;
+        const temp = new StatisticDefinition({
+          onStatisticField: `CASE WHEN (${chartCategoryTypeField} = ${typev} and ${statusField} = ${status}) THEN 1 ELSE 0 END`,
+          outStatisticFieldName: `viaduct_stats${type}${status}`,
+          statisticType: "sum",
+        });
+        compile.push(temp);
+      });
     });
 
-    // 4. Wait for all type calculations to finish
-    const results = await Promise.all(promises);
-    const total_comp = results.reduce(
-      (sum: any, item: any) => sum + item.comp,
-      0,
-    );
-    const total_all = results.reduce(
-      (sum: any, item: any) => sum + item.comp + item.incomp, // + item.ongoing + item.delayed,
-      0,
-    );
-    const progress =
-      total_all > 0 ? ((total_comp / total_all) * 100).toFixed(1) : "0.0";
+    //--- Query
+    const query = new Query();
+    query.outStatistics = compile;
+    query.where = qChart;
 
-    return [results, total_all, progress];
-    //--------------------------//
-    //    only status field     //
-    //--------------------------//
-  } else {
-    let total_comp = 0;
-    let total_all = 0;
+    const response = await layer?.queryFeatures(query);
+    return await chartStatsBySublayer({
+      types: types,
+      statusState: statusState,
+      stats: response.features[0].attributes,
+      compile: compile,
+    });
+  });
 
-    const data0 = chartCategoryTypes.map(async (type: any, index: any) => {
-      //--- Calculate statistics
-      const stats = await chartDataQuery({
-        qChart: qChart,
-        layers: layers[index],
-        statusState: statusState,
-        statusField: statusField,
-        qExpression: qExpression,
-      });
+  //--- Compile data by type and status
+  return await chartStatsCompile({
+    data: await Promise.all(data0),
+    types: types,
+    layers: layers,
+  });
+}
 
-      //--- Compute total numbers for completed and grand total
-      total_comp += stats[1];
-      total_all += stats[4];
+//---- Building Layer ---//
+interface chartDataGenerationType {
+  q1Value?: any;
+  q1Field?: any;
+  qChart: any;
+  chartCategoryTypes: any;
+  chartCategoryTypeField?: any;
+  layers: any;
+  statusField: any;
+  statusState: any;
+}
 
+interface chartStatsCompile {
+  data: any;
+  types: any;
+  layers: any;
+}
+
+export async function chartStatsCompile({
+  data,
+  types,
+  layers,
+}: chartStatsCompile) {
+  let total_all = 0;
+  let total_comp = 0;
+  const data2 = types.map((type: any) => {
+    const temp = layers.map((_sublayer: any, j: any) => {
+      const match = data[j].filter((item: any) => item.category === type)[0];
       return Object.assign({
-        category: type.category,
-        comp: stats[1],
-        incomp: stats[0],
-        ongoing: stats[2],
-        delayed: stats[3],
+        category: type,
+        incomp: match?.incomp,
+        ongoing: match?.ongoing,
+        delayed: match?.delayed,
+        comp: match?.comp,
       });
     });
+    //--- sum up for each sublayer
+    const incomp = temp.reduce((sum: any, item: any) => sum + item.incomp, 0);
+    const ongoing = temp.reduce((sum: any, item: any) => sum + item.ongoing, 0);
+    const delayed = temp.reduce((sum: any, item: any) => sum + item.delayed, 0);
+    const comp = temp.reduce((sum: any, item: any) => sum + item.comp, 0);
 
-    //--- Resolve Promise all
-    const data = await Promise.all(data0);
-    const progress =
-      total_all > 0 ? ((total_comp / total_all) * 100).toFixed(1) : "0.0";
+    total_all += incomp + ongoing + delayed + comp;
+    total_comp += comp;
 
-    return [data, total_all, progress];
-  }
+    return Object.assign({
+      category: type,
+      incomp: incomp,
+      ongoing: ongoing,
+      delayed: delayed,
+      comp: comp,
+    });
+  });
+
+  const progress =
+    total_all > 0 ? ((total_comp / total_all) * 100).toFixed(1) : "0.0";
+
+  return [data2, total_all, progress];
+}
+
+interface chartStatsBySublayer {
+  types: any;
+  statusState: any;
+  stats: any;
+  compile: any;
+}
+
+export async function chartStatsBySublayer({
+  types,
+  statusState,
+  stats,
+  compile,
+}: chartStatsBySublayer) {
+  let k = 0;
+  return types.map((category: any) => {
+    let temp: any = [];
+    statusState.map((_status: any) => {
+      temp.push(stats[compile[k].outStatisticFieldName]);
+      k += 1;
+    });
+    return Object.assign({
+      category: category,
+      incomp: temp[0],
+      ongoing: temp[1],
+      delayed: temp[2],
+      comp: temp[3],
+    });
+  });
 }
