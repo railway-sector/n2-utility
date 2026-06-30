@@ -6,6 +6,7 @@ import {
   utilityPointLayer,
   utilityLineLayer,
   queryc,
+  chartstack,
 } from "../layers";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
@@ -19,7 +20,6 @@ import {
   utility_category_types,
 } from "../uniqueValues";
 import { queryDefinitionExpression } from "../queryExpression";
-import { chartDataStackColumns } from "../chartDataGenerator";
 import { chartRenderer } from "../chartRenderer";
 import { legendSetter, rootSetter } from "../chartSetter";
 import { useQuery } from "@tanstack/react-query";
@@ -66,14 +66,11 @@ const Chart = () => {
         ],
       });
 
-      const chartData = await chartDataStackColumns({
-        qChart: queryc.queryExpression(),
-        chartCategoryTypes: utility_category_types,
-        chartCategoryTypeField: chartCategoryTypeField, // "UtilType"
-        layers: [utilityPointLayer, utilityLineLayer],
-        statusState: [0, 2, 3, 1], // 2, 3 are dummy. 0: incomp, 1: comp
-        statusField: status_Field,
-      });
+      chartstack.qChart = queryc.queryExpression();
+      chartstack.categoryTypeField = chartCategoryTypeField;
+      chartstack.layers = [utilityPointLayer, utilityLineLayer];
+      chartstack.statusState = [0, 2, 3, 1]; // 2, 3 are dummy
+      const chartData = await chartstack.chartDataStackColumns();
 
       zoomToLayer(utilityPointLayer, arcgisScene?.view);
 
