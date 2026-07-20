@@ -1,19 +1,15 @@
 import { DropdownData } from "./DropdownContext";
 import { dateUpdate } from "../query";
-import { dateDisplayKeys } from "../interfaceKeys";
 import { useQuery } from "@tanstack/react-query";
-import type { DisplayDates } from "../interfaceKeys";
 
 function Header() {
-  const { data } = useQuery<DisplayDates | any>({
-    queryKey: [dateDisplayKeys.selected],
-    queryFn: () => dateUpdate(),
-    select: (response) => {
-      return { asOfDate: response };
-    },
+  const { data } = useQuery<any>({
+    queryKey: ["As_Of_Date"],
+    queryFn: () => dateUpdate("Utility Relocation"),
     staleTime: Infinity,
   });
-  const asOfDate = data?.asOfDate || "";
+  const asofdate = data ?? "";
+
   return (
     <>
       <header
@@ -50,7 +46,7 @@ function Header() {
             paddingLeft: "70px",
           }}
         >
-          {!asOfDate ? "" : "As of " + asOfDate}
+          {!asofdate ? "" : "As of " + asofdate}
         </div>
 
         {/* Dropdown component */}

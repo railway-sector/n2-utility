@@ -1,45 +1,65 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   utilityPointLayer1,
   utilityLineLayer1,
   utilityPointLayer,
   utilityLineLayer,
-  queryc,
-  chartstack,
+  utilityLayers,
 } from "../layers";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
-import { thousands_separators, zoomToLayer } from "../query";
+import {
+  makeQuery,
+  stackColumnChartData,
+  stackColumnChartRender,
+  thousands_separators,
+  zoomToLayer,
+} from "../query";
 import { ArcgisScene } from "@arcgis/map-components/dist/components/arcgis-scene";
 import {
-  chartCategoryTypeField,
-  status_Field,
-  statusArray,
-  statusColorForChart,
-  utility_category_types,
+  cp_f,
+  util_comp_f,
+  util_dtype_f,
+  util_status_f,
+  util_status_q,
+  util_type_f,
+  util_types,
+  viastatus_q,
 } from "../uniqueValues";
 import { queryDefinitionExpression } from "../queryExpression";
-import { chartRenderer } from "../chartRenderer";
 import { legendSetter, rootSetter } from "../chartSetter";
 import { useQuery } from "@tanstack/react-query";
 import { locationKeys } from "../interfaceKeys";
 import type { SelectedLocation, ChartResponse } from "../interfaceKeys";
+import ChartStackColumns from "chart-stack-column";
+import ChartStackColumnRender from "chart-stack-column-render";
 
 // Draw chart
 const Chart = () => {
   const arcgisScene = document.querySelector("arcgis-scene") as ArcgisScene;
   const [chartPanelwidth, setChartPanelwidth] = useState<any>();
 
-  //--- 1. Location state
-  const { data: selectedLocation } = useQuery<SelectedLocation | any>({
+  //--- Filter values from Dropwdown
+  const { data: dpd } = useQuery<SelectedLocation | any>({
     queryKey: locationKeys.selected,
     queryFn: async () => ({}),
     staleTime: Infinity,
   });
-  const cpackage = selectedLocation?.cpackage;
-  const company = selectedLocation?.company;
-  const utype = selectedLocation?.utype;
+  const cpackage = dpd?.cpackage;
+  const company = dpd?.company;
+  const utype = dpd?.utype;
+
+  //-- Recomputes only when utype is changed:
+  const rLayers = useMemo(
+    () => (!utype ? Object.values(utilityLayers).flat() : utilityLayers[utype]),
+    [utype],
+  );
+
+  //--- Query Expression
+  const qV = [cpackage, company, utype];
+  const qF = [cp_f, util_comp_f, util_dtype_f];
+  const queryc = makeQuery(qV, qF);
 
   //--- 2. Streamlined Data Fetching with useQuery
   const { data } = useQuery<ChartResponse | any>({
@@ -51,7 +71,7 @@ const Chart = () => {
       utilityPointLayer1,
       utilityLineLayer,
       utilityLineLayer1,
-      status_Field,
+      util_status_f,
     ],
     queryFn: async () => {
       queryc.qValues = [cpackage, company, utype];
@@ -66,11 +86,16 @@ const Chart = () => {
         ],
       });
 
-      chartstack.qChart = queryc.queryExpression();
-      chartstack.categoryTypeField = chartCategoryTypeField;
-      chartstack.layers = [utilityPointLayer, utilityLineLayer];
-      chartstack.statusState = [0, 2, 3, 1]; // 2, 3 are dummy
-      const chartData = await chartstack.chartDataStackColumns();
+      //--- chart data
+      const chartData = await stackColumnChartData({
+        colchart: new ChartStackColumns(),
+        qChart: queryc,
+        categoryTypes: util_types,
+        categoryTypeField: util_type_f,
+        layers: [utilityPointLayer, utilityLineLayer],
+        statusField: util_status_f,
+        statusState: [0, 2, 3, 1],
+      });
 
       zoomToLayer(utilityPointLayer, arcgisScene?.view);
 
@@ -147,32 +172,31 @@ const Chart = () => {
     });
     legendRef.current = legend;
 
-    chartRenderer({
-      root: root,
-      chart: chart,
+    stackColumnChartRender({
+      render: new ChartStackColumnRender(),
+      revit: false,
+      layers: rLayers,
+      root,
+      chart,
       data: chartData,
-      layers: [
-        utilityPointLayer,
-        utilityPointLayer1,
-        utilityLineLayer,
-        utilityLineLayer1,
-      ],
+      buildingLayer: undefined,
       qChart: queryc,
-      chartCategoryTypes: utility_category_types,
-      chartCategoryFieldScene: chartCategoryTypeField,
+      chartCategoryTypes: util_types,
+      chartCategoryTypeField: util_type_f,
       statusTypename: ["Completed", "To be Constructed"], //["Completed", "To be Constructed", "Under Construction"],
       statusStatename: ["comp", "incomp"], //["comp", "incomp", "ongoing"],
-      statusArray: statusArray,
-      statusField: status_Field,
-      seriesStatusColor: statusColorForChart,
+      statusArray: util_status_q,
+      statusField: util_status_f,
+      seriesStatusColor: viastatus_q.map((c: any) => c.color),
       strokeColor: chartBorderLineColor,
       strokeWidth: chartBorderLineWidth,
-      arcgisScene: arcgisScene,
-      new_chartIconSize: new_chartIconSize,
-      new_axisFontSize: new_axisFontSize,
-      chartIconPositionX: chartIconPositionX,
-      chartPaddingRightIconLabel: chartPaddingRightIconLabel,
-      legend: legend,
+      view: arcgisScene?.view,
+      setLayerViewFilter: undefined,
+      new_chartIconSize,
+      new_axisFontSize,
+      chartIconPositionX,
+      chartPaddingRightIconLabel,
+      legend,
       updateChartPanelwidth: setChartPanelwidth,
     });
 

@@ -1,22 +1,81 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Select from "react-select";
 import "../index.css";
 import { utilityLineLayer, utilityPointLayer } from "../layers";
-import GenerateDropdownData from "npm-dropdown-package";
+import GenerateDropdownData from "dropdown-pkg-arcgis";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { locationKeys } from "../interfaceKeys";
 import type { SelectedLocation } from "../interfaceKeys";
 
+const theme = {
+  bg: "#2b2b2b",
+  bgDisabled: "#232323",
+  border: "#444444",
+  borderHover: "#5a5a5a",
+  borderFocus: "#6aa9ff",
+  text: "#ffffff",
+  textMuted: "#9a9a9a",
+  optionFocused: "#3a3a3a",
+  optionSelected: "#353535",
+};
+
+const customStyles = {
+  container: (s: any) => ({ ...s, width: "180px" }),
+  control: (s: any, { isDisabled, isFocused }: any) => ({
+    ...s,
+    backgroundColor: isDisabled ? theme.bgDisabled : theme.bg,
+    borderColor: isFocused ? theme.borderFocus : theme.border,
+    borderRadius: "6px",
+    minHeight: "36px",
+    boxShadow: "none",
+    opacity: isDisabled ? 0.6 : 1,
+    "&:hover": {
+      borderColor: isFocused ? theme.borderFocus : theme.borderHover,
+    },
+  }),
+  placeholder: (s: any) => ({ ...s, color: theme.textMuted }),
+  singleValue: (s: any) => ({ ...s, color: theme.text }),
+  input: (s: any) => ({ ...s, color: theme.text }),
+  indicatorSeparator: (s: any) => ({ ...s, backgroundColor: theme.border }),
+  dropdownIndicator: (s: any) => ({
+    ...s,
+    color: theme.textMuted,
+    "&:hover": { color: theme.text },
+  }),
+  clearIndicator: (s: any) => ({
+    ...s,
+    color: theme.textMuted,
+    "&:hover": { color: theme.text },
+  }),
+  menu: (s: any) => ({
+    ...s,
+    backgroundColor: theme.bg,
+    border: `1px solid ${theme.border}`,
+    overflow: "hidden",
+  }),
+  option: (s: any, { isFocused, isSelected }: any) => ({
+    ...s,
+    backgroundColor: isFocused
+      ? theme.optionFocused
+      : isSelected
+        ? theme.optionSelected
+        : theme.bg,
+    color: theme.text,
+    cursor: "pointer",
+  }),
+};
+
+type FieldKey = "cpackage" | "company" | "utype";
+
 export function DropdownData() {
   const queryClient = useQueryClient();
 
+  //--- Define selected names from drowpdown fields: cp, company, utype
   const [cpSelected, setCpSelected] = useState<null | any>(null);
-  const [companySelected, setCompanySelected] = useState<null | any>(null);
+  const [compSelected, setCompSelected] = useState<null | any>(null);
   const [utypeSelected, setUtypeSelected] = useState<null | any>(null);
 
-  const [companyList, setCompanyList] = useState<any>([]);
-  const [utypeList, setUtypeList] = useState<any>([]);
-
+  //--- Permanent dropdown list
   const { data: cpackageList } = useQuery<any>({
     queryKey: ["dropdownData"], // Do not add lotLayer as a dependency. The dropdown list will not be updated properly.
     queryFn: async () => {
@@ -32,68 +91,42 @@ export function DropdownData() {
     refetchOnReconnect: false,
   });
 
-  // this instantly updates the global cache
-  function updateDropdownListValues(
-    cp_obj_field: SelectedLocation["cpackage"],
-    comp_obj_field: SelectedLocation["company"],
-    utype_obj_field: SelectedLocation["utype"],
-  ) {
-    return queryClient.setQueryData<SelectedLocation>(locationKeys.selected, {
-      cpackage: cp_obj_field,
-      company: comp_obj_field,
-      utype: utype_obj_field,
-    });
+  //--- Derived option lists — recomputed only when their parent selection changes.
+  const companyList = useMemo(() => cpSelected?.field2 ?? [], [cpSelected]);
+  const utypeList = useMemo(() => compSelected?.field3 ?? [], [compSelected]);
+
+  //--- Update dropdown field values partially
+  function setSelectedLocation(patch: Partial<SelectedLocation>) {
+    queryClient.setQueryData<SelectedLocation>(
+      locationKeys.selected,
+      (prev) => ({
+        cpackage: prev?.cpackage ?? null,
+        company: prev?.company ?? null,
+        utype: prev?.utype ?? null,
+        ...patch,
+      }),
+    );
   }
 
-  const handleContractPackageChange = (obj: any) => {
-    updateDropdownListValues(obj.field1, undefined, undefined);
-    setCpSelected(obj);
-    setCompanyList(obj.field2);
-    setCompanySelected(null);
-    setUtypeSelected(null);
-  };
+  //--- Handler covering all three dropdowns, resetting downstream selections.
+  function handleChange(field: FieldKey, obj: any) {
+    const value =
+      field === "cpackage" ? (obj?.field1 ?? null) : (obj?.name ?? null);
 
-  const handleCompanyChange = (obj: any) => {
-    updateDropdownListValues(cpSelected?.field1, obj.name, undefined);
-    setCompanySelected(obj);
-    setUtypeList(obj.field3);
-    setUtypeSelected(null);
-  };
-
-  const handleTypeChange = (obj: any) => {
-    updateDropdownListValues(
-      cpSelected?.field1,
-      companySelected?.name,
-      obj.name,
-    );
-    setUtypeSelected(obj);
-  };
-
-  // Style CSS
-  const customstyles = {
-    option: (styles: any, { isFocused, isSelected }: any) => {
-      // const color = chroma(data.color);
-      return {
-        ...styles,
-        backgroundColor: isFocused
-          ? "#555555"
-          : isSelected
-            ? "#2b2b2b"
-            : "#2b2b2b",
-        color: "#ffffff",
-      };
-    },
-
-    control: (defaultStyles: any) => ({
-      ...defaultStyles,
-      backgroundColor: "#2b2b2b",
-      borderColor: "#949494",
-      height: 35,
-      width: "170px",
-      color: "#ffffff",
-    }),
-    singleValue: (defaultStyles: any) => ({ ...defaultStyles, color: "#fff" }),
-  };
+    if (field === "cpackage") {
+      setSelectedLocation({ cpackage: value, company: null, utype: null });
+      setCpSelected(obj);
+      setCompSelected(null);
+      setUtypeSelected(null);
+    } else if (field === "company") {
+      setSelectedLocation({ company: value, utype: null });
+      setCompSelected(obj);
+      setUtypeSelected(null);
+    } else {
+      setSelectedLocation({ utype: value });
+      setUtypeSelected(obj);
+    }
+  }
 
   return (
     <div
@@ -101,38 +134,41 @@ export function DropdownData() {
         display: "flex",
         flexDirection: "row",
         margin: "auto",
-        padding: "5px",
         borderRadius: "5px",
+        gap: "12px",
+        marginRight: "15%",
       }}
     >
-      <b style={{ color: "white", margin: 10, fontSize: "0.9vw" }}></b>
       <Select
         placeholder="Select CP"
         value={cpSelected}
-        options={cpackageList && cpackageList}
-        onChange={handleContractPackageChange}
+        options={cpackageList ?? []}
+        onChange={(obj) => handleChange("cpackage", obj)}
         getOptionLabel={(x: any) => x.field1}
-        styles={customstyles}
+        isClearable
+        styles={customStyles}
       />
       <br />
-      <b style={{ color: "white", margin: 10, fontSize: "0.9vw" }}></b>
+
       <Select
         placeholder="Select Company"
-        value={companySelected}
+        value={compSelected}
         options={companyList && companyList}
-        onChange={handleCompanyChange}
+        onChange={(obj) => handleChange("company", obj)}
         getOptionLabel={(x: any) => x.name}
-        styles={customstyles}
+        isClearable
+        styles={customStyles}
       />
       <br />
-      <b style={{ color: "white", margin: 10, fontSize: "0.9vw" }}></b>
+
       <Select
         placeholder="Select Type"
         value={utypeSelected}
-        options={utypeList && utypeList}
-        onChange={handleTypeChange}
+        options={utypeList}
+        onChange={(obj) => handleChange("utype", obj)}
         getOptionLabel={(x: any) => x.name}
-        styles={customstyles}
+        isClearable
+        styles={customStyles}
       />
     </div>
   );

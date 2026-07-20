@@ -13,9 +13,9 @@ import UndergroundSwitch from "./components/UndergroundSwitch";
 import { authenticate } from "./autho";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const queryClient = new QueryClient();
-
 export function App(): React.JSX.Element {
+  const queryClient = new QueryClient();
+
   const [loggedInState, setLoggedInState] = useState<boolean>(false);
   useEffect(() => {
     authenticate(setLoggedInState, "J8s9ay8lK9toINAC");
