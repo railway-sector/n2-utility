@@ -1,0 +1,1 @@
+import{ae as s,ag as t}from"./index-XMB08g9N.js";import{B as r}from"./FeatureLikeLayerView-KwgY4nG7.js";let a=class extends r{constructor(){super(...arguments),this.layer=null}get updateSuspended(){const e=this.parent?.dynamicGroupLayerView;return this.suspended&&(!e||e.suspended===!0)}};s([t()],a.prototype,"updateSuspended",null);export{a as s};
