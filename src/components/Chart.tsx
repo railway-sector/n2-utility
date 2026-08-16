@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import {
   utilityPointLayer1,
   utilityLineLayer1,
@@ -9,13 +9,7 @@ import {
 } from "../layers";
 import * as am5 from "@amcharts/amcharts5";
 import * as am5xy from "@amcharts/amcharts5/xy";
-import {
-  makeQuery,
-  stackColumnChartData,
-  stackColumnChartRender,
-  thousands_separators,
-  zoomToLayer,
-} from "../query";
+import { thousands_separators, zoomToLayer } from "../query";
 import { ArcgisScene } from "@arcgis/map-components/dist/components/arcgis-scene";
 import {
   cp_f,
@@ -30,39 +24,22 @@ import {
 import { queryDefinitionExpression } from "../queryExpression";
 import { legendSetter, rootSetter } from "../chartSetter";
 import { useQuery } from "@tanstack/react-query";
-import { locationKeys } from "../interfaceKeys";
-import type { SelectedLocation, ChartResponse } from "../interfaceKeys";
+import type { ChartResponse } from "../interfaceKeys";
 import ChartStackColumns from "chart-stack-column";
 import ChartStackColumnRender from "chart-stack-column-render";
+import QueryExpressionLayers from "query-layers-expression";
+import { MyContext } from "../contexts/MyContext";
 
-// Draw chart
-const Chart = () => {
-  const arcgisScene = document.querySelector("arcgis-scene") as ArcgisScene;
-  const [chartPanelwidth, setChartPanelwidth] = useState<any>();
-
-  //--- Filter values from Dropwdown
-  const { data: dpd } = useQuery<SelectedLocation | any>({
-    queryKey: locationKeys.selected,
-    queryFn: async () => ({}),
-    staleTime: Infinity,
-  });
-  const cpackage = dpd?.cpackage;
-  const company = dpd?.company;
-  const utype = dpd?.utype;
-
-  //-- Recomputes only when utype is changed:
-  const rLayers = useMemo(
-    () => (!utype ? Object.values(utilityLayers).flat() : utilityLayers[utype]),
-    [utype],
-  );
-
-  //--- Query Expression
-  const qV = [cpackage, company, utype];
-  const qF = [cp_f, util_comp_f, util_dtype_f];
-  const queryc = makeQuery(qV, qF);
-
-  //--- 2. Streamlined Data Fetching with useQuery
-  const { data } = useQuery<ChartResponse | any>({
+//-----------------------//
+//     usetUtilityData   //
+//-----------------------//
+function useUtilityData(
+  cpackage: string,
+  company: string,
+  utype: string,
+  query: any,
+) {
+  return useQuery<ChartResponse | any>({
     queryKey: [
       cpackage,
       company,
@@ -72,12 +49,11 @@ const Chart = () => {
       utilityLineLayer,
       utilityLineLayer1,
       util_status_f,
+      query,
     ],
     queryFn: async () => {
-      queryc.qValues = [cpackage, company, utype];
-
       queryDefinitionExpression({
-        queryExpression: queryc.queryExpression(),
+        queryExpression: query.queryExpression(),
         featureLayer: [
           utilityPointLayer,
           utilityPointLayer1,
@@ -87,17 +63,16 @@ const Chart = () => {
       });
 
       //--- chart data
-      const chartData = await stackColumnChartData({
-        colchart: new ChartStackColumns(),
-        qChart: queryc,
+      const chartData = await new ChartStackColumns({
+        where: query.queryExpression(),
         categoryTypes: util_types,
         categoryTypeField: util_type_f,
         layers: [utilityPointLayer, utilityLineLayer],
         statusField: util_status_f,
         statusState: [0, 2, 3, 1],
-      });
+      }).chartDataStackColumns();
 
-      zoomToLayer(utilityPointLayer, arcgisScene?.view);
+      // zoomToLayer(utilityPointLayer, arcgisScene?.view);
 
       return {
         chartData: chartData[0] || [],
@@ -107,6 +82,29 @@ const Chart = () => {
     },
     staleTime: Infinity,
   });
+}
+
+// Draw chart
+const Chart = () => {
+  const { cpackage, company, utype } = use(MyContext);
+
+  const arcgisScene = document.querySelector("arcgis-scene") as ArcgisScene;
+  const [chartPanelwidth, setChartPanelwidth] = useState<any>();
+
+  //--Recompute only when utype is updated
+  const rLayers = useMemo(
+    () => (!utype ? Object.values(utilityLayers).flat() : utilityLayers[utype]),
+    [utype],
+  );
+
+  //--- Query Expression
+  const q1 = new QueryExpressionLayers({
+    qFields: [cp_f, util_comp_f, util_dtype_f],
+    qValues: [cpackage, company, utype],
+  });
+
+  const { data, isLoading } = useUtilityData(cpackage, company, utype, q1);
+
   const chartData = data?.chartData || [];
   const totaln = data?.totaln || 0;
   const perc_comp = data?.perc || 0;
@@ -138,8 +136,16 @@ const Chart = () => {
   const new_axisFontSize = chartPanelwidth * 0.036;
   const new_imageSize = chartPanelwidth * 0.055;
 
-  // Utility Chart
+  const zoomFiltersRef = useRef(`${cpackage}-${company}-${utype}`);
+
   useEffect(() => {
+    const currentZoomFilters = `${cpackage}-${company}-${utype}`;
+
+    if (currentZoomFilters !== zoomFiltersRef.current) {
+      zoomFiltersRef.current = currentZoomFilters;
+      zoomToLayer(utilityPointLayer, arcgisScene?.view);
+    }
+
     const root = rootSetter({ chartID: chartID });
     const chart = root.container.children.push(
       am5xy.XYChart.new(root, {
@@ -172,15 +178,15 @@ const Chart = () => {
     });
     legendRef.current = legend;
 
-    stackColumnChartRender({
-      render: new ChartStackColumnRender(),
+    //--- Chart Renderer
+    new ChartStackColumnRender({
       revit: false,
       layers: rLayers,
       root,
       chart,
       data: chartData,
       buildingLayer: undefined,
-      qChart: queryc,
+      where: q1,
       chartCategoryTypes: util_types,
       chartCategoryTypeField: util_type_f,
       statusTypename: ["Completed", "To be Constructed"], //["Completed", "To be Constructed", "Under Construction"],
@@ -198,9 +204,7 @@ const Chart = () => {
       chartPaddingRightIconLabel,
       legend,
       updateChartPanelwidth: setChartPanelwidth,
-    });
-
-    chart.appear(1000, 100);
+    }).chartRendererColumn();
 
     return () => {
       root.dispose();
@@ -224,14 +228,7 @@ const Chart = () => {
           justifyContent: "space-between",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            // marginLeft: "15px",
-            // marginRight: "25px",
-            justifyContent: "space-between",
-          }}
-        >
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
           <img
             src="https://EijiGorilla.github.io/Symbols/Utility_Logo.png"
             alt="Utility Logo"
@@ -256,6 +253,7 @@ const Chart = () => {
                 fontFamily: "calibri",
                 lineHeight: "1.2",
                 margin: "auto",
+                opacity: isLoading ? 0 : 1,
               }}
             >
               {thousands_separators(perc_comp)} %
@@ -266,6 +264,7 @@ const Chart = () => {
                 fontSize: `${new_valueSize}*0.5px`,
                 fontFamily: "calibri",
                 lineHeight: "1.2",
+                opacity: isLoading ? 0 : 1,
               }}
             >
               ({thousands_separators(totaln)})
@@ -282,6 +281,7 @@ const Chart = () => {
             color: "white",
             marginRight: "10px",
             marginTop: "10px",
+            opacity: isLoading ? 0 : 1,
           }}
         ></div>
       </div>

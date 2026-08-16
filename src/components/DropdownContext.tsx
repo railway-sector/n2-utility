@@ -1,11 +1,10 @@
-import { useMemo, useState } from "react";
+import { use, useMemo, useState } from "react";
 import Select from "react-select";
 import "../index.css";
 import { utilityLineLayer, utilityPointLayer } from "../layers";
 import GenerateDropdownData from "dropdown-pkg-arcgis";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { locationKeys } from "../interfaceKeys";
-import type { SelectedLocation } from "../interfaceKeys";
+import { useQuery } from "@tanstack/react-query";
+import { MyContext } from "../contexts/MyContext";
 
 const theme = {
   bg: "#2b2b2b",
@@ -65,10 +64,8 @@ const customStyles = {
   }),
 };
 
-type FieldKey = "cpackage" | "company" | "utype";
-
 export function DropdownData() {
-  const queryClient = useQueryClient();
+  const { updateCpackage, updateCompany, updateUtype } = use(MyContext);
 
   //--- Define selected names from drowpdown fields: cp, company, utype
   const [cpSelected, setCpSelected] = useState<null | any>(null);
@@ -95,38 +92,26 @@ export function DropdownData() {
   const companyList = useMemo(() => cpSelected?.field2 ?? [], [cpSelected]);
   const utypeList = useMemo(() => compSelected?.field3 ?? [], [compSelected]);
 
-  //--- Update dropdown field values partially
-  function setSelectedLocation(patch: Partial<SelectedLocation>) {
-    queryClient.setQueryData<SelectedLocation>(
-      locationKeys.selected,
-      (prev) => ({
-        cpackage: prev?.cpackage ?? null,
-        company: prev?.company ?? null,
-        utype: prev?.utype ?? null,
-        ...patch,
-      }),
-    );
-  }
+  const handleContractPackageChange = (obj: any) => {
+    updateCpackage(obj?.field1 ?? null);
+    updateCompany(null);
+    updateUtype(null);
+    setCpSelected(obj);
+    setCompSelected(null);
+    setUtypeSelected(null);
+  };
 
-  //--- Handler covering all three dropdowns, resetting downstream selections.
-  function handleChange(field: FieldKey, obj: any) {
-    const value =
-      field === "cpackage" ? (obj?.field1 ?? null) : (obj?.name ?? null);
+  const handleCompanyChange = (obj: any) => {
+    updateCompany(obj?.name ?? null);
+    updateUtype(null);
+    setCompSelected(obj);
+    setUtypeSelected(null);
+  };
 
-    if (field === "cpackage") {
-      setSelectedLocation({ cpackage: value, company: null, utype: null });
-      setCpSelected(obj);
-      setCompSelected(null);
-      setUtypeSelected(null);
-    } else if (field === "company") {
-      setSelectedLocation({ company: value, utype: null });
-      setCompSelected(obj);
-      setUtypeSelected(null);
-    } else {
-      setSelectedLocation({ utype: value });
-      setUtypeSelected(obj);
-    }
-  }
+  const handleTypeChange = (obj: any) => {
+    updateUtype(obj?.name ?? null);
+    setUtypeSelected(obj);
+  };
 
   return (
     <div
@@ -142,8 +127,8 @@ export function DropdownData() {
       <Select
         placeholder="Select CP"
         value={cpSelected}
-        options={cpackageList ?? []}
-        onChange={(obj) => handleChange("cpackage", obj)}
+        options={cpackageList && cpackageList}
+        onChange={handleContractPackageChange}
         getOptionLabel={(x: any) => x.field1}
         isClearable
         styles={customStyles}
@@ -154,7 +139,7 @@ export function DropdownData() {
         placeholder="Select Company"
         value={compSelected}
         options={companyList && companyList}
-        onChange={(obj) => handleChange("company", obj)}
+        onChange={handleCompanyChange}
         getOptionLabel={(x: any) => x.name}
         isClearable
         styles={customStyles}
@@ -164,8 +149,8 @@ export function DropdownData() {
       <Select
         placeholder="Select Type"
         value={utypeSelected}
-        options={utypeList}
-        onChange={(obj) => handleChange("utype", obj)}
+        options={utypeList && utypeList}
+        onChange={handleTypeChange}
         getOptionLabel={(x: any) => x.name}
         isClearable
         styles={customStyles}
