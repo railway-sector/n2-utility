@@ -60,7 +60,6 @@ function Header() {
           style={{
             marginBottom: "auto",
             marginTop: "auto",
-
             marginLeft: "25px",
             paddingRight: "35px",
           }}
