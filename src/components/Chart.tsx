@@ -321,7 +321,7 @@ const Chart = () => {
         <div
           id={chartID}
           style={{
-            width: "23vw",
+            width: "95%",
             height: "71vh",
             backgroundColor: "rgb(0,0,0,0)",
             color: "white",
