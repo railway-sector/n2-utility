@@ -158,7 +158,7 @@ const Chart = () => {
   //    chart. view lives here too (not passed statically to the
   //    renderer) since arcgis-scene's view may not be ready on first
   //    mount.
-  const configRef = useRef({
+  const configBaseArgs = {
     revit: false,
     layers: rLayers,
     buildingLayer: undefined,
@@ -166,17 +166,10 @@ const Chart = () => {
     where: q1,
     status_field: util_status_f,
     view: arcgisScene?.view,
-  });
+  };
+  const configRef = useRef({ ...configBaseArgs });
   useEffect(() => {
-    configRef.current = {
-      revit: false,
-      layers: rLayers,
-      buildingLayer: undefined,
-      chartCategoryTypeField: util_type_f,
-      where: q1,
-      status_field: util_status_f,
-      view: arcgisScene?.view,
-    };
+    configRef.current = { ...configBaseArgs };
   }, [data, util_status_f, arcgisScene]);
 
   //---  Column Chart Renderer — created ONCE (mount only)
@@ -222,7 +215,6 @@ const Chart = () => {
       chart,
       data: [],
       configRef,
-      buildingLayer: undefined,
       chartCategoryTypes: util_types,
       statusTypename: ["Completed", "To be Constructed"], //["Completed", "To be Constructed", "Under Construction"],
       statusStatename: ["comp", "incomp"], //["comp", "incomp", "ongoing"],
@@ -329,6 +321,7 @@ const Chart = () => {
         <div
           id={chartID}
           style={{
+            width: "23vw",
             height: "71vh",
             backgroundColor: "rgb(0,0,0,0)",
             color: "white",
