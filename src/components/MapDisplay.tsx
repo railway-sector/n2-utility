@@ -54,7 +54,7 @@ function MapDisplay() {
     arcgisSearch.allPlaceholder = "Pier Number, Chainage, Utility ID";
     arcgisSearch.includeDefaultSourcesDisabled = true;
     arcgisSearch.locationDisabled = true;
-    arcgisSearch?.sources.push(...sources);
+    arcgisSearch.sources = sources;
   });
 
   return (
